@@ -110,10 +110,7 @@ def imsave(data, output_name, output_dtype="uint8", input_dtype="uint8", is_scal
 # =============================================================
 # function: read_image
 #   read image and return an array of image pixel values
-#   data:   is the image data
-#   output_dtype: output data type
-#   input_dtype: input data type
-#   is_scale: is scaling needed to go from input data type to output data type
+#   path: the image file path
 # =============================================================
 def read_image(path):
     exten = path[-3:]

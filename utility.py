@@ -108,13 +108,37 @@ def imsave(data, output_name, output_dtype="uint8", input_dtype="uint8", is_scal
         return
 
 # =============================================================
-# function: read_image
-#   read image and return an array of image pixel values
+# function: read_raw_image
+#   read raw image and return an array of image pixel values
 #   path: the image file path
+#   bitdepth: the bit depth of the image
+#   LSB_supp: if the raw image is not 16-bit or 8-bit and the pixel value is supplemented with 0s in Least Significant Bits, this parameter should be True
 # =============================================================
-def read_image(path):
-    exten = path[-3:]
-    if exten == "pgm":
+def read_raw_image(path, bitdepth=16, LSB_supp=False):
+    #read raw8 image 
+    if bitdepth == 8:
+        im = np.fromfile(path, dtype="uint8", sep="")
+    
+    #read raw10, raw12, raw14 or raw16 images
+    elif bitdepth > 8 and bitdepth <= 16:
+        im = np.fromfile(path, dtype="uint16", sep="")
+        if LSB_supp=True:
+            im = im/np.pow(2,(16-bitdepth))
+
+    #if the bit depth value is none of above
+    else:
+        print("Unsupported bit depth value for a raw image file")
+    
+    return im
+
+# =============================================================
+# function: read_raw_image
+#   read raw image and return an array of image pixel values
+#   path: the image file path
+#   bitdepth: the bit depth of the image
+# =============================================================
+def read_pgm_image(path, bitdepth=16):
+    if bitdepth == 16:
         pgmf = open(path, 'rb')
         line_1 = pgmf.readline()
         if line_1[:2] == b'P5':
@@ -141,9 +165,12 @@ def read_image(path):
         
         else:
             print("unsupported pgm type")
-    
-    elif exten == "raw":
-        im = np.fromfile(path, dtype="uint16", sep="")
+
+    elif bitdepth == 8:
+        print("function for 8-bit pgm image will be added later")
+
+    else:
+        print("unsupported bit depth for a pgm image")
 
     return im
 

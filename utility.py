@@ -122,12 +122,13 @@ def read_raw_image(path, bitdepth=16, LSB_supp=False):
     #read raw10, raw12, raw14 or raw16 images
     elif bitdepth > 8 and bitdepth <= 16:
         im = np.fromfile(path, dtype="uint16", sep="")
-        if LSB_supp=True:
+        if LSB_supp == True:
             im = im/np.pow(2,(16-bitdepth))
 
     #if the bit depth value is none of above
     else:
         print("Unsupported bit depth value for a raw image file")
+        return
     
     return im
 
@@ -138,17 +139,27 @@ def read_raw_image(path, bitdepth=16, LSB_supp=False):
 #   bitdepth: the bit depth of the image
 # =============================================================
 def read_pgm_image(path, bitdepth=16):
+    #read 16-bit pgm image
     if bitdepth == 16:
+        #open the file and read the first line of headers to determine the pgm standard
         pgmf = open(path, 'rb')
         line_1 = pgmf.readline()
+
+        #if the image is a P5 standard pgm image
         if line_1[:2] == b'P5':
+            #read the second line of headers and get the height and width of the image
             line_2 = pgmf.readline()
-            width = int(line_2[0:4].decode())
-            height = int(line_2[5:9].decode())
+            (width, height) = (line_2.decode()).split()
+            (width, height) = (int(width), int(height))
+
+            #read the third line of headers and get the maximum pixel value
             line_3 = pgmf.readline()
-            depth = int(line_3[0:4].decode())
+            depth = int(line_3.decode())
+
+            #return error if the colour depth is too large
             assert depth <= 65535
 
+            #read the image and store it into a numpy array
             im = []
             for i in range(height*width):
                 high_bits = int.from_bytes(pgmf.read(1), byteorder='little')
@@ -156,8 +167,10 @@ def read_pgm_image(path, bitdepth=16):
             pgmf.close()
             im = np.array(im)
 
+        #if the image is a P2 standard image
         elif line_1.strip() == 'P2':
             im = []
+            #store the image and discard headers
             lines = pgmf.readlines()
             for i in lines:
                 im.extend([int(c) for c in i.split()])
@@ -165,12 +178,51 @@ def read_pgm_image(path, bitdepth=16):
         
         else:
             print("unsupported pgm type")
+            return
 
+    #read 8-bit pgm image
     elif bitdepth == 8:
-        print("function for 8-bit pgm image will be added later")
+        #open the file and read the first line of headers to determine the pgm standard
+        pgmf = open(path, 'rb')
+        line_1 = pgmf.readline()
+
+        #if the image is a P5 standard pgm image
+        if line_1[:2] == b'P5':
+            #read the second line of headers and get the height and width of the image
+            line_2 = pgmf.readline()
+            (width, height) = (line_2.decode()).split()
+            (width, height) = (int(width), int(height))
+
+            #read the third line of headers and get the maximum pixel value
+            line_3 = pgmf.readline()
+            depth = int(line_3.decode())
+
+            #return error if the colour depth is too large
+            assert depth <= 255
+
+            #read the image and store it into a numpy array
+            im = []
+            for i in range(height*width):
+                im.append(int.from_bytes(pgmf.read(1), byteorder='little'))
+            pgmf.close()
+            im = np.array(im)
+        
+        #if the image is a P2 standard image
+        elif line_1.strip() == 'P2':
+            im = []
+            #store the image and discard headers
+            lines = pgmf.readlines()
+            for i in lines:
+                im.extend([int(c) for c in i.split()])
+            im = np.array(im[3:])
+
+        else:
+            print("unsupported pgm type")
+            return
 
     else:
         print("unsupported bit depth for a pgm image")
+        return
 
     return im
 
@@ -506,6 +558,24 @@ class color_conversion:
         output[:, :, 1] = np.multiply(np.cos(self.data[:, :, 2] * np.pi / 180), self.data[:, :, 1])
         output[:, :, 2] = np.multiply(np.sin(self.data[:, :, 2] * np.pi / 180), self.data[:, :, 1])
 
+        return output
+
+    def rgb2yuv(self):
+
+        output = np.empty(np.shape(self.data), dtype=np.float32)
+
+        output[:, :, 0] = 0.298 * self.data[:, :, 0] + \
+                          0.612 * self.data[:, :, 1] + \
+                          0.117 * self.data[:, :, 2]
+        output[:, :, 1] = -0.168 * self.data[:, :, 0] - \
+                          0.330 * self.data[:, :, 1] + \
+                          0.498 * self.data[:, :, 2] + \
+                          128
+        output[:, :, 2] = 0.449 * self.data[:, :, 0] - \
+                          0.435 * self.data[:, :, 1] - \
+                          0.083 * self.data[:, :, 2] + \
+                          128
+        
         return output
 
     def __str__(self):

@@ -123,7 +123,7 @@ def read_raw_image(path, bitdepth=16, LSB_supp=False):
     elif bitdepth > 8 and bitdepth <= 16:
         im = np.fromfile(path, dtype="uint16", sep="")
         if LSB_supp == True:
-            im = im/np.pow(2,(16-bitdepth))
+            im = im/math.pow(2,(16-bitdepth))
 
     #if the bit depth value is none of above
     else:
@@ -151,6 +151,9 @@ def read_pgm_image(path, bitdepth=16):
             line_2 = pgmf.readline()
             (width, height) = (line_2.decode()).split()
             (width, height) = (int(width), int(height))
+
+            for n in range(0,6):
+                pgmf.readline()
 
             #read the third line of headers and get the maximum pixel value
             line_3 = pgmf.readline()
@@ -195,6 +198,10 @@ def read_pgm_image(path, bitdepth=16):
 
             #read the third line of headers and get the maximum pixel value
             line_3 = pgmf.readline()
+
+            while line_3[:1] == b'#':
+                line_3 = pgmf.readline()
+
             depth = int(line_3.decode())
 
             #return error if the colour depth is too large

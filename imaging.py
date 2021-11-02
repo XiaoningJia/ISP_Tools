@@ -298,17 +298,41 @@ class demosaic:
 #   expo_gain: the exposure gain
 #   expo_time: the exposure time
 # =============================================================
-def cal_Kfactor(im_frame, integration_time_cam, G_channel_avg_cam, expo_gain, expo_time):
-    for i in im_frame.shape[3]:
-        for j in im_frame.shape[0]:
-            for k in im_frame.shape[1]:
-                G = G + im_frame[j][k][2][i]
+def cal_Kfactor(im_frame, frame_type="raw", integration_time_cam=0.01306536, G_channel_avg_cam=65, expo_gain=1.23, expo_time=0.0100178):
+    G = 0
 
-    G_channel_avg_calib = G/(im_frame[0]*im_frame[1]*im_frame[3])
+    if frame_type == "raw":
+        for i in range(0, im_frame.shape[0]):
+            temp = utility.helpers(im_frame[i].data).scale(im_frame[i].get_bit_depth(),16)
+            (R, G1, G2, B) = utility.helpers(temp).bayer_channel_separation(im_frame[0].bayer_pattern)
+
+            G = G + ((np.sum(G1) + np.sum(G2))*255)/(65535*im_frame[i].get_width()*im_frame[i].get_height())
+
+        G_channel_avg_calib = G/im_frame.shape[0]
+
+    elif frame_type == "png":
+        for i in range(0, im_frame.shape[0]):
+            for j in range(0, im_frame.shape[1]-1):
+                for k in (0, im_frame.shape[2]-1):
+                    G = G + im_frame[i][j][k][1]
+
+        G_channel_avg_calib = G/(im_frame.shape[0]*im_frame[1]*im_frame[2])
+
+    else:
+        print("unsupported image type")
+
+        return
+    
     integration_time_calib = expo_gain * expo_time
     Kfactor = 2.8 * (integration_time_cam / G_channel_avg_cam) / (integration_time_calib / G_channel_avg_calib)
 
     return Kfactor
+
+# def cal_Kfactor(integration_time_cam=0.01306536, G_channel_avg_cam=65, expo_gain=1.23, expo_time=0.0100178, G_channel_avg_calib=100):
+#     integration_time_calib = expo_gain * expo_time
+#     Kfactor = 2.8 * (integration_time_cam / G_channel_avg_cam) / (integration_time_calib / G_channel_avg_calib)
+
+#     return Kfactor
 
 # =============================================================
 # function: In_or_Out
